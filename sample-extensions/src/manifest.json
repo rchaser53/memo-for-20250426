@@ -1,0 +1,12 @@
+{
+    "name": "Sample-20241110",
+    "version": "1.0.0",
+    "manifest_version": 3,
+    "description": "Sample Chrome Extension",
+    "content_scripts": [{
+      "matches": ["https://qiita.com/RyBB/items/32b2a7b879f21b3edefc"],
+      "js": [
+        "content.js"
+      ]
+    }]
+  }
