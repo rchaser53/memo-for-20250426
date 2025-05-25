@@ -1,0 +1,17 @@
+{
+  "api": {
+    "url": "http://localhost:50021",
+    "timeout": 10000
+  },
+  "speaker": {
+    "default_id": 0,
+    "name": "四国めたん（ノーマル）"
+  },
+  "output": {
+    "dir": "output",
+    "filename": "output.wav"
+  },
+  "playback": {
+    "auto_play": true
+  }
+}

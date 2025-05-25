@@ -4,11 +4,71 @@ const path = require('path');
 const player = require('play-sound')(opts = {});
 const readlineSync = require('readline-sync');
 
-// VOICEVOXのAPIエンドポイント（デフォルトでは50021ポートで動作）
-const VOICEVOX_API_URL = 'http://localhost:50021';
+// 設定ファイルのパス
+const CONFIG_FILE = path.join(__dirname, 'config.json');
+
+// デフォルト設定
+let config = {
+  api: {
+    url: 'http://localhost:50021',
+    timeout: 10000
+  },
+  speaker: {
+    default_id: 0,
+    name: '四国めたん（ノーマル）'
+  },
+  output: {
+    dir: 'output',
+    filename: 'output.wav'
+  },
+  playback: {
+    auto_play: true
+  }
+};
+
+// 設定ファイルを読み込む
+function loadConfig() {
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      const fileConfig = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+      // 深いマージを行う
+      config = mergeConfig(config, fileConfig);
+      console.log('設定ファイルを読み込みました');
+    } else {
+      console.log('設定ファイルが見つかりません。デフォルト設定を使用します');
+      // デフォルト設定ファイルを作成
+      fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8');
+      console.log(`デフォルト設定ファイルを作成しました: ${CONFIG_FILE}`);
+    }
+  } catch (error) {
+    console.error('設定ファイルの読み込みに失敗しました:', error.message);
+    console.log('デフォルト設定を使用します');
+  }
+}
+
+// 設定を深いマージする関数
+function mergeConfig(target, source) {
+  const result = { ...target };
+  
+  for (const key in source) {
+    if (source[key] instanceof Object && key in target) {
+      result[key] = mergeConfig(target[key], source[key]);
+    } else {
+      result[key] = source[key];
+    }
+  }
+  
+  return result;
+}
+
+// 設定を読み込む
+loadConfig();
+
+// VOICEVOXのAPIエンドポイント
+const VOICEVOX_API_URL = config.api.url;
 
 // 音声ファイルの保存先ディレクトリ
-const OUTPUT_DIR = path.join(__dirname, 'output');
+const OUTPUT_DIR = path.join(__dirname, config.output.dir);
 
 // 出力ディレクトリが存在しない場合は作成
 if (!fs.existsSync(OUTPUT_DIR)) {
@@ -41,7 +101,9 @@ const SPEAKERS = [
  */
 async function getSpeakers() {
   try {
-    const response = await axios.get(`${VOICEVOX_API_URL}/speakers`);
+    const response = await axios.get(`${VOICEVOX_API_URL}/speakers`, {
+      timeout: config.api.timeout
+    });
     return response.data;
   } catch (error) {
     console.error('話者一覧の取得に失敗しました:', error.message);
@@ -64,7 +126,10 @@ async function textToSpeech(text, speakerId, outputFile) {
     const queryResponse = await axios.post(
       `${VOICEVOX_API_URL}/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`,
       {},
-      { headers: { 'Content-Type': 'application/json' } }
+      { 
+        headers: { 'Content-Type': 'application/json' },
+        timeout: config.api.timeout
+      }
     );
     
     // 音声を合成
@@ -74,7 +139,8 @@ async function textToSpeech(text, speakerId, outputFile) {
       queryResponse.data,
       { 
         responseType: 'arraybuffer',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'audio/wav' }
+        headers: { 'Content-Type': 'application/json', 'Accept': 'audio/wav' },
+        timeout: config.api.timeout
       }
     );
     
@@ -131,11 +197,11 @@ function selectSpeaker(speakers) {
   });
   
   // 話者を選択
-  const selection = readlineSync.question('\n番号を入力してください (デフォルト: 1): ');
+  const selection = readlineSync.question(`\n番号を入力してください (デフォルト: ${config.speaker.default_id + 1}): `);
   
   // 入力が空の場合はデフォルト値を使用
   if (selection.trim() === '') {
-    return speakers[0].id;
+    return config.speaker.default_id;
   }
   
   // 入力値を数値に変換
@@ -144,7 +210,7 @@ function selectSpeaker(speakers) {
   // 入力値が範囲外の場合はデフォルト値を使用
   if (isNaN(index) || index < 0 || index >= speakers.length) {
     console.log('無効な選択です。デフォルトの話者を使用します。');
-    return speakers[0].id;
+    return config.speaker.default_id;
   }
   
   return speakers[index].id;
@@ -225,8 +291,10 @@ async function main() {
         // テキストを音声に変換
         const audioFile = await textToSpeech(fileContent, speakerId, outputFile);
         
-        // 音声を再生
-        await playAudio(audioFile);
+        // 自動再生が有効な場合は音声を再生
+        if (config.playback.auto_play) {
+          await playAudio(audioFile);
+        }
       }
       return;
     }
@@ -260,8 +328,10 @@ async function main() {
       // テキストを音声に変換
       const audioFile = await textToSpeech(text, speakerId, outputFile);
       
-      // 音声を再生
-      await playAudio(audioFile);
+      // 自動再生が有効な場合は音声を再生
+      if (config.playback.auto_play) {
+        await playAudio(audioFile);
+      }
       
       // 続けるかどうか確認
       const continueOption = readlineSync.question('\n続けますか？ (y/n, デフォルト: y): ');

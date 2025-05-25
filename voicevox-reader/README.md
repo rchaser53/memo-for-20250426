@@ -83,11 +83,58 @@ node advanced.js path/to/textfile.txt
 - タイムスタンプ付きの自動ファイル名生成
 - テキストファイルの読み上げ
 
+## 設定ファイル
+
+このツールは`config.json`という設定ファイルを使用して、様々な設定をカスタマイズできます。初回実行時に自動的に作成されます。
+
+### 設定ファイルの例
+
+```json
+{
+  "api": {
+    "url": "http://localhost:50021",
+    "timeout": 10000
+  },
+  "speaker": {
+    "default_id": 0,
+    "name": "四国めたん（ノーマル）"
+  },
+  "output": {
+    "dir": "output",
+    "filename": "output.wav"
+  },
+  "playback": {
+    "auto_play": true
+  }
+}
+```
+
+### 設定項目
+
+- **api**: VOICEVOXエンジンのAPI設定
+  - `url`: VOICEVOXエンジンのURLとポート
+  - `timeout`: API呼び出しのタイムアウト時間（ミリ秒）
+- **speaker**: 話者の設定
+  - `default_id`: デフォルトの話者ID
+  - `name`: デフォルトの話者名（参照用）
+- **output**: 出力設定
+  - `dir`: 音声ファイルの保存先ディレクトリ
+  - `filename`: デフォルトの音声ファイル名
+- **playback**: 再生設定
+  - `auto_play`: 音声を自動再生するかどうか（true/false）
+
+### 設定ファイルの編集方法
+
+1. `config.json`をテキストエディタで開きます
+2. 必要な設定を変更します
+3. ファイルを保存します
+4. スクリプトを再実行すると、新しい設定が適用されます
+
 ## 注意事項
 
-- デフォルトでは「四国めたん（ノーマル）」の声（SPEAKER_ID = 0）が使用されます
-- 他の話者を使用したい場合は、`index.js`の`SPEAKER_ID`の値を変更してください
-- 音声ファイルは`output/output.wav`に保存されます
+- デフォルトでは「四国めたん（ノーマル）」の声が使用されます
+- デフォルトの話者を変更するには、`config.json`の`speaker.default_id`の値を変更してください
+- 音声ファイルは`output`ディレクトリに保存されます
 
 ## トラブルシューティング
 
