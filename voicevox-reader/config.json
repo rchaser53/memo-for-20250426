@@ -13,5 +13,18 @@
   },
   "playback": {
     "auto_play": true
+  },
+  "news": {
+    "keywords": ["AI", "人工知能", "テクノロジー"],
+    "max_articles": 5,
+    "summary_length": 200,
+    "output_file": "news_summary.txt",
+    "language": "ja",
+    "reading": {
+      "split_files": true,
+      "max_chars_per_file": 300,
+      "include_metadata": false,
+      "output_prefix": "news_reading_"
+    }
   }
 }
