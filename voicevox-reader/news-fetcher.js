@@ -14,6 +14,12 @@ let config = {
     summary_length: 200,
     output_file: "news_summary.txt",
     language: "ja",
+    rss_feeds: [
+      'https://news.yahoo.co.jp/rss/topics/it.xml',
+      'https://feeds.feedburner.com/itmedia/news',
+      'https://rss.cnn.com/rss/edition.rss',
+      'https://feeds.bbci.co.uk/news/technology/rss.xml'
+    ],
     reading: {
       split_files: true,
       max_chars_per_file: 300,
@@ -41,14 +47,6 @@ function loadConfig() {
     console.log('デフォルト設定を使用します');
   }
 }
-
-// 日本語ニュースのRSSフィード一覧
-const RSS_FEEDS = [
-  'https://news.yahoo.co.jp/rss/topics/it.xml',
-  'https://feeds.feedburner.com/itmedia/news',
-  'https://rss.cnn.com/rss/edition.rss',
-  'https://feeds.bbci.co.uk/news/technology/rss.xml'
-];
 
 // RSSパーサーを初期化
 const parser = new Parser({
@@ -137,8 +135,14 @@ async function fetchNewsFromRSS(feedUrl) {
  */
 async function fetchAllNews() {
   const allNews = [];
+  const rssFeeds = config.news.rss_feeds || [];
   
-  for (const feedUrl of RSS_FEEDS) {
+  if (rssFeeds.length === 0) {
+    console.warn('RSSフィードが設定されていません。');
+    return allNews;
+  }
+  
+  for (const feedUrl of rssFeeds) {
     const news = await fetchNewsFromRSS(feedUrl);
     allNews.push(...news);
   }
@@ -313,7 +317,8 @@ function outputSummaryToFile(summarizedArticles) {
   let content = `# ニュース要約レポート\n`;
   content += `生成日時: ${new Date().toLocaleString('ja-JP')}\n`;
   content += `検索キーワード: ${config.news.keywords.join(', ')}\n`;
-  content += `記事数: ${summarizedArticles.length}件\n\n`;
+  content += `記事数: ${summarizedArticles.length}件\n`;
+  content += `RSSフィード数: ${config.news.rss_feeds.length}件\n\n`;
   
   summarizedArticles.forEach((article, index) => {
     content += `## ${index + 1}. ${article.title}\n`;
@@ -344,6 +349,7 @@ async function main() {
     console.log(`検索キーワード: ${config.news.keywords.join(', ')}`);
     console.log(`最大記事数: ${config.news.max_articles}`);
     console.log(`要約文字数: ${config.news.summary_length}`);
+    console.log(`RSSフィード数: ${config.news.rss_feeds.length}`);
     
     // ニュースを取得
     console.log('\nニュースを取得中...');

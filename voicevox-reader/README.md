@@ -141,6 +141,12 @@ node news-fetcher.js
     "summary_length": 200,
     "output_file": "news_summary.txt",
     "language": "ja",
+    "rss_feeds": [
+      "https://news.yahoo.co.jp/rss/topics/it.xml",
+      "https://feeds.feedburner.com/itmedia/news",
+      "https://rss.cnn.com/rss/edition.rss",
+      "https://feeds.bbci.co.uk/news/technology/rss.xml"
+    ],
     "reading": {
       "split_files": true,
       "max_chars_per_file": 300,
@@ -170,6 +176,7 @@ node news-fetcher.js
   - `summary_length`: 要約の最大文字数
   - `output_file`: 要約結果の出力ファイル名
   - `language`: 言語設定（現在は"ja"のみ対応）
+  - `rss_feeds`: 取得するRSSフィードのURL配列
   - **reading**: 読み上げ用ファイル設定
     - `split_files`: ファイルを分割するかどうか（true/false）
     - `max_chars_per_file`: 1ファイルあたりの最大文字数
@@ -196,6 +203,31 @@ node news-fetcher.js
   }
 }
 ```
+
+### RSSフィードのカスタマイズ
+
+`config.json`の`news.rss_feeds`配列を編集することで、取得するRSSフィードを変更できます：
+
+```json
+{
+  "news": {
+    "rss_feeds": [
+      "https://news.yahoo.co.jp/rss/topics/it.xml",
+      "https://feeds.feedburner.com/itmedia/news",
+      "https://www.asahi.com/rss/asahi/newsheadlines.rdf",
+      "https://www3.nhk.or.jp/rss/news/cat0.xml"
+    ]
+  }
+}
+```
+
+**利用可能なRSSフィードの例**：
+- Yahoo!ニュース IT: `https://news.yahoo.co.jp/rss/topics/it.xml`
+- ITmedia NEWS: `https://feeds.feedburner.com/itmedia/news`
+- 朝日新聞デジタル: `https://www.asahi.com/rss/asahi/newsheadlines.rdf`
+- NHK NEWS WEB: `https://www3.nhk.or.jp/rss/news/cat0.xml`
+- CNN Technology: `https://rss.cnn.com/rss/edition.rss`
+- BBC Technology: `https://feeds.bbci.co.uk/news/technology/rss.xml`
 
 ### 読み上げ用ファイル分割のカスタマイズ
 
@@ -225,6 +257,7 @@ node news-fetcher.js
 - 音声ファイルは`output`ディレクトリに保存されます
 - ニュース要約ファイルと読み上げ用ファイルも`output`ディレクトリに保存されます
 - 読み上げ用ファイルは`news_reading_XX_XX.txt`の形式で生成されます
+- RSSフィードのURLは変更される可能性があります。定期的に確認してください
 
 ## トラブルシューティング
 
@@ -235,10 +268,15 @@ node news-fetcher.js
 - ニュースが取得できない場合：
   - インターネット接続を確認してください
   - RSSフィードのURLが変更されている可能性があります
+  - `config.json`の`news.rss_feeds`設定を確認してください
 
 - 読み上げ用ファイルが生成されない場合：
   - `config.json`の`news.reading.split_files`設定を確認してください
   - `output`ディレクトリの書き込み権限を確認してください
+
+- 特定のRSSフィードでエラーが発生する場合：
+  - そのRSSフィードのURLが正しいか確認してください
+  - 一時的にそのフィードを設定から除外して試してください
 
 ## 利用可能な話者ID
 

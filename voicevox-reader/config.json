@@ -20,6 +20,13 @@
     "summary_length": 200,
     "output_file": "news_summary.txt",
     "language": "ja",
+    "rss_feeds": [
+      "https://news.yahoo.co.jp/rss/topics/it.xml",
+      "https://feeds.feedburner.com/itmedia/news",
+      "https://rss.cnn.com/rss/edition.rss",
+      "https://feeds.bbci.co.uk/news/technology/rss.xml",
+      "https://zenn.dev/topics/ai/feed"
+    ],
     "reading": {
       "split_files": true,
       "max_chars_per_file": 300,
