@@ -1,0 +1,23 @@
+# .readignoreファイル
+# 各行に1つのglobパターンを記述します
+# #で始まる行はコメントとして扱われます
+
+# 一時ファイル
+*.tmp
+*.temp
+*.log
+
+# 特定のディレクトリ
+node_modules/**
+.git/**
+.vscode/**
+
+# 特定のファイル
+package-lock.json
+.DS_Store
+
+# 特定の拡張子
+*.mp3
+*.wav
+*.zip
+*.md

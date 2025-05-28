@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const { minimatch } = require('minimatch');
 const ConfigManager = require('./lib/config-manager');
 const VoicevoxAPI = require('./lib/voicevox-api');
 const AudioPlayer = require('./lib/audio-player');
@@ -8,6 +9,43 @@ const UIHelper = require('./lib/ui-helper');
 
 // 設定ファイルのパス
 const CONFIG_FILE = path.join(__dirname, 'config.json');
+// .readignoreファイルのパス
+const READIGNORE_FILE = path.join(__dirname, '.readignore');
+
+/**
+ * .readignoreファイルからglobパターンを読み込む
+ * @returns {string[]} globパターンの配列
+ */
+function loadReadIgnorePatterns() {
+  try {
+    if (fs.existsSync(READIGNORE_FILE)) {
+      const content = fs.readFileSync(READIGNORE_FILE, 'utf8');
+      // 改行で分割し、空行を除外
+      return content.split('\n')
+        .map(line => line.trim())
+        .filter(line => line && !line.startsWith('#'));
+    }
+  } catch (error) {
+    console.warn(`.readignoreファイルの読み込み中にエラーが発生しました: ${error.message}`);
+  }
+  return [];
+}
+
+/**
+ * ファイルパスがglobパターンに一致するかチェック
+ * @param {string} filePath ファイルパス
+ * @param {string[]} patterns globパターンの配列
+ * @returns {boolean} 一致する場合はtrue
+ */
+function shouldIgnoreFile(filePath, patterns) {
+  if (!patterns || patterns.length === 0) return false;
+  
+  const relativePath = path.relative(__dirname, filePath);
+  
+  return patterns.some(pattern => {
+    return minimatch(relativePath, pattern) || minimatch(path.basename(filePath), pattern);
+  });
+}
 
 /**
  * メイン関数
@@ -92,6 +130,12 @@ async function handleDirectory(dirPath, voicevoxAPI, audioPlayer, configManager)
   console.log(`ディレクトリを読み込んでいます: ${dirPath}`);
   
   try {
+    // .readignoreファイルからglobパターンを読み込む
+    const ignorePatterns = loadReadIgnorePatterns();
+    if (ignorePatterns.length > 0) {
+      console.log(`.readignoreファイルから${ignorePatterns.length}個の除外パターンを読み込みました`);
+    }
+    
     // ディレクトリ内のファイル一覧を取得
     const files = fs.readdirSync(dirPath);
     
@@ -102,6 +146,12 @@ async function handleDirectory(dirPath, voicevoxAPI, audioPlayer, configManager)
       
       // ファイルのみを対象とし、一般的なテキストファイル拡張子をチェック
       if (!stats.isFile()) return false;
+      
+      // .readignoreパターンに一致するファイルを除外
+      if (shouldIgnoreFile(filePath, ignorePatterns)) {
+        console.log(`除外パターンに一致するため、ファイルをスキップします: ${file}`);
+        return false;
+      }
       
       const ext = path.extname(file).toLowerCase();
       return ['.txt', '.md', '.json', '.js', '.ts', '.html', '.css', '.xml', '.csv'].includes(ext);
