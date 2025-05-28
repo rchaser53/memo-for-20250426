@@ -262,7 +262,7 @@ ${getLengthInstruction(summaryLength)}
       news: {
         reading: {
           split_files: true,
-          max_chars_per_file: 300,
+          max_chars_per_file: 100,
           include_metadata: true,
           output_prefix: 'website_summary_'
         }
