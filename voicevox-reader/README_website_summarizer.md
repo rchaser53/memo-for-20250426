@@ -9,6 +9,7 @@
 - テキストの自動分割と複数ファイルへの出力
 - 進行状況の表示とレート制限対応
 - 要約の長さを調整可能
+- **設定ファイルから複数URLを一括処理**（New!）
 
 ## 必要な環境
 
@@ -31,27 +32,46 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 ## 使用方法
 
-### 基本的な使用方法
+### 単一URLの処理
 
 ```bash
-node website-summarizer.js --url=<URL> --output=<出力ディレクトリ>
+node website-summarizer.js --url=<URL> --output=<出力ディレクトリ> [--length=<要約の長さ>]
 ```
 
-### オプション付きの使用方法
+### 設定ファイルから複数URLを処理
 
 ```bash
-node website-summarizer.js --url=<URL> --output=<出力ディレクトリ> --length=<要約の長さ>
+node website-summarizer.js --config
 ```
+
+この方法では、`config.json`に設定された複数のURLを一括で処理します。
 
 ### パラメータ
 
-- `--url=<URL>` (必須): 要約したいウェブサイトのURL
-- `--output=<出力ディレクトリ>` (必須): 結果を保存するディレクトリ
+- `--url=<URL>`: 要約したいウェブサイトのURL（単一URL処理時に必須）
+- `--output=<出力ディレクトリ>`: 結果を保存するディレクトリ（単一URL処理時に必須）
 - `--length=<要約の長さ>` (オプション): 要約の長さを指定
   - `short` または `brief`: 簡潔な要約（2-3文）
   - `medium` または `normal`: 標準的な要約（5-8文）- デフォルト
   - `long` または `detailed`: 詳細な要約（10-15文）
   - 数値: 指定した文字数での要約
+- `--config`: 設定ファイルから複数URLを処理するモード
+
+### 設定ファイル（config.json）の例
+
+```json
+{
+  "websites": {
+    "urls": [
+      "https://example.com",
+      "https://example.org",
+      "https://example.net"
+    ],
+    "output_dir": "website_summaries",
+    "summary_length": "medium"
+  }
+}
+```
 
 ## 使用例
 
@@ -77,6 +97,8 @@ node website-summarizer.js --url=https://example.com --output=./output --length=
 
 ## 出力ファイル
 
+### 単一URLの処理時
+
 スクリプトは以下のファイルを生成します：
 
 1. **要約レポート**: `website_summary_report.md`
@@ -85,6 +107,16 @@ node website-summarizer.js --url=https://example.com --output=./output --length=
 2. **分割ファイル**: `website_summary_01_01.txt`, `website_summary_01_02.txt`, ...
    - 要約を300文字ずつに分割したテキストファイル
    - 音声読み上げなどに適したサイズ
+
+### 複数URLの処理時
+
+1. **各URLごとのサブディレクトリ**:
+   - 各URLのホスト名とパスに基づいたディレクトリが作成されます
+   - 各サブディレクトリには上記と同様の要約レポートと分割ファイルが含まれます
+
+2. **全体レポート**: `all_summaries/all_websites_summary.md`
+   - すべてのURLの要約をまとめたMarkdownファイル
+   - 各URLへのリンクと要約内容が含まれます
 
 ## 技術仕様
 

@@ -6,31 +6,75 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const TextSplitter = require('./lib/text-splitter');
+const ConfigManager = require('./lib/config-manager');
 require('dotenv').config();
+
+// 設定ファイルの読み込み
+const configManager = new ConfigManager(path.join(__dirname, 'config.json'));
+configManager.loadConfig();
+const config = configManager.getConfig();
 
 // コマンドライン引数の解析
 const args = process.argv.slice(2);
 const urlArg = args.find(arg => arg.startsWith('--url='));
 const outputDirArg = args.find(arg => arg.startsWith('--output='));
 const summaryLengthArg = args.find(arg => arg.startsWith('--length='));
-
-// 必須パラメータのチェック
-if (!urlArg) {
-  console.error('❌ エラー: URLが指定されていません');
-  console.log('使用方法: node website-summarizer.js --url=<URL> --output=<出力ディレクトリ> [--length=<short|medium|long>]');
-  process.exit(1);
-}
-
-if (!outputDirArg) {
-  console.error('❌ エラー: 出力ディレクトリが指定されていません');
-  console.log('使用方法: node website-summarizer.js --url=<URL> --output=<出力ディレクトリ> [--length=<short|medium|long>]');
-  process.exit(1);
-}
+const configArg = args.find(arg => arg.startsWith('--config'));
 
 // パラメータの設定
-const targetUrl = urlArg.split('=')[1];
-const outputDir = outputDirArg.split('=')[1];
-const summaryLength = summaryLengthArg ? summaryLengthArg.split('=')[1] : 'medium';
+let targetUrl = null;
+let outputDir = null;
+let summaryLength = 'medium';
+let useConfigFile = configArg !== undefined;
+
+// 設定ファイルからの読み込みかコマンドライン引数からの読み込みかを判断
+if (useConfigFile) {
+  console.log('📄 設定ファイルからURLリストを読み込みます');
+  
+  // 設定ファイルに websites セクションがあるか確認
+  if (!config.websites || !config.websites.urls || !Array.isArray(config.websites.urls) || config.websites.urls.length === 0) {
+    console.error('❌ エラー: 設定ファイルに有効なwebsites.urlsが設定されていません');
+    console.log('config.jsonに以下のような設定を追加してください:');
+    console.log(`
+  "websites": {
+    "urls": [
+      "https://example.com",
+      "https://example.org"
+    ],
+    "output_dir": "website_summaries",
+    "summary_length": "medium"
+  }`);
+    process.exit(1);
+  }
+  
+  // 設定ファイルから出力ディレクトリと要約の長さを取得
+  outputDir = config.websites.output_dir || 'website_summaries';
+  summaryLength = config.websites.summary_length || 'medium';
+  
+  console.log(`📁 出力ディレクトリ: ${outputDir}`);
+  console.log(`📏 要約の長さ: ${summaryLength}`);
+  console.log(`🔢 処理するURL数: ${config.websites.urls.length}`);
+  
+} else {
+  // コマンドライン引数からの実行
+  if (!urlArg) {
+    console.error('❌ エラー: URLが指定されていません');
+    console.log('使用方法:');
+    console.log('  設定ファイルから複数URLを処理: node website-summarizer.js --config');
+    console.log('  単一URLを処理: node website-summarizer.js --url=<URL> --output=<出力ディレクトリ> [--length=<short|medium|long>]');
+    process.exit(1);
+  }
+
+  if (!outputDirArg) {
+    console.error('❌ エラー: 出力ディレクトリが指定されていません');
+    console.log('使用方法: node website-summarizer.js --url=<URL> --output=<出力ディレクトリ> [--length=<short|medium|long>]');
+    process.exit(1);
+  }
+
+  targetUrl = urlArg.split('=')[1];
+  outputDir = outputDirArg.split('=')[1];
+  summaryLength = summaryLengthArg ? summaryLengthArg.split('=')[1] : 'medium';
+}
 
 // 要約の長さに応じた指示を設定
 const getLengthInstruction = (length) => {
@@ -156,22 +200,19 @@ async function fetchWebsiteContent(url) {
   }
 }
 
-// メイン処理
-async function main() {
+// 単一URLの要約処理
+async function processUrl(url, outputDir, summaryLength) {
   try {
-    console.log('🚀 ウェブサイト要約処理を開始します...\n');
-    
-    // 進行度ロガーを初期化（推定ステップ数）
-    const progressLogger = new ProgressLogger(6);
-    
-    console.log(`🌐 対象URL: ${targetUrl}`);
+    console.log(`\n🌐 対象URL: ${url}`);
     console.log(`📁 出力ディレクトリ: ${outputDir}`);
     console.log(`📏 要約の長さ: ${summaryLength}\n`);
     
+    // 進行度ロガーを初期化（推定ステップ数）
+    const progressLogger = new ProgressLogger(6);
     progressLogger.logStep('設定の初期化完了');
     
     // ウェブサイトからコンテンツを取得
-    const htmlContent = await fetchWebsiteContent(targetUrl);
+    const htmlContent = await fetchWebsiteContent(url);
     progressLogger.logStep('ウェブサイトコンテンツの取得完了');
     
     // HTMLからテキストを抽出してクリーニング
@@ -179,8 +220,8 @@ async function main() {
     
     // テキストが空でないことを確認
     if (!text || text.length === 0) {
-      console.error('❌ エラー: 処理可能なテキストが見つかりません');
-      process.exit(1);
+      console.error(`❌ エラー: ${url} から処理可能なテキストが見つかりません`);
+      return null;
     }
     
     console.log(`📊 処理するテキストの長さ: ${text.length.toLocaleString()}文字`);
@@ -257,8 +298,20 @@ ${getLengthInstruction(summaryLength)}
       fs.mkdirSync(outputDir, { recursive: true });
     }
     
+    // URLからサブディレクトリ名を生成
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname.replace(/\./g, '_');
+    const pathname = urlObj.pathname.replace(/\//g, '_').replace(/\./g, '_');
+    const urlSubdir = `${hostname}${pathname}`.substring(0, 50); // 長すぎる場合は切り詰める
+    
+    // URLごとのサブディレクトリを作成
+    const urlOutputDir = path.join(outputDir, urlSubdir);
+    if (!fs.existsSync(urlOutputDir)) {
+      fs.mkdirSync(urlOutputDir, { recursive: true });
+    }
+    
     // TextSplitterを使用してファイルを分割・出力
-    const config = {
+    const splitterConfig = {
       news: {
         reading: {
           split_files: true,
@@ -269,24 +322,24 @@ ${getLengthInstruction(summaryLength)}
       }
     };
     
-    const textSplitter = new TextSplitter(config);
+    const textSplitter = new TextSplitter(splitterConfig);
     
     // 要約結果を記事形式に変換
     const summarizedArticles = [{
-      title: `ウェブサイト要約: ${targetUrl}`,
+      title: `ウェブサイト要約: ${url}`,
       summary: summary.text,
-      source: targetUrl,
+      source: url,
       pubDate: new Date().toLocaleString('ja-JP'),
-      link: targetUrl
+      link: url
     }];
     
     // 分割されたファイルを作成
-    const createdFiles = textSplitter.createReadingFiles(summarizedArticles, outputDir);
+    const createdFiles = textSplitter.createReadingFiles(summarizedArticles, urlOutputDir);
     
     // 要約結果をまとめたファイルも作成
     const summaryFile = textSplitter.outputSummaryToFile(
       summarizedArticles, 
-      outputDir, 
+      urlOutputDir, 
       'website_summary_report.md'
     );
     
@@ -302,9 +355,84 @@ ${getLengthInstruction(summaryLength)}
       console.log(`  - ${file}`);
     });
     
-    console.log('\n使用方法:');
-    console.log('node website-summarizer.js --url=<URL> --output=<出力ディレクトリ> [--length=<short|medium|long>]');
-    console.log('例: node website-summarizer.js --url=https://example.com --output=./output --length=medium');
+    return {
+      url,
+      summaryFile,
+      createdFiles,
+      summary: summary.text
+    };
+    
+  } catch (error) {
+    console.error(`❌ URL ${url} の処理中にエラーが発生しました: ${error.message}`);
+    return null;
+  }
+}
+
+// メイン処理
+async function main() {
+  try {
+    console.log('🚀 ウェブサイト要約処理を開始します...\n');
+    
+    if (useConfigFile) {
+      // 設定ファイルから複数URLを処理
+      const urls = config.websites.urls;
+      const results = [];
+      
+      console.log(`📋 処理するURL一覧:`);
+      urls.forEach((url, index) => {
+        console.log(`  ${index + 1}. ${url}`);
+      });
+      console.log('');
+      
+      for (let i = 0; i < urls.length; i++) {
+        console.log(`\n🔄 URL ${i + 1}/${urls.length} を処理中...`);
+        const result = await processUrl(urls[i], outputDir, summaryLength);
+        if (result) {
+          results.push(result);
+        }
+      }
+      
+      // 全体の結果をまとめたレポートを作成
+      const allSummariesDir = path.join(outputDir, 'all_summaries');
+      if (!fs.existsSync(allSummariesDir)) {
+        fs.mkdirSync(allSummariesDir, { recursive: true });
+      }
+      
+      // 全体のレポートを作成
+      const reportContent = `# 複数ウェブサイト要約レポート
+
+処理日時: ${new Date().toLocaleString('ja-JP')}
+
+## 処理したURL一覧
+
+${results.map((result, index) => `${index + 1}. [${result.url}](${result.url})`).join('\n')}
+
+## 各サイトの要約
+
+${results.map(result => `### ${result.url}\n\n${result.summary}\n\n[詳細レポート](${result.summaryFile})\n`).join('\n')}
+`;
+      
+      const reportPath = path.join(allSummariesDir, 'all_websites_summary.md');
+      fs.writeFileSync(reportPath, reportContent, 'utf8');
+      
+      console.log('\n✅ すべてのURLの処理が完了しました');
+      console.log(`📄 全体レポート: ${reportPath}`);
+      console.log(`📁 各URLの詳細レポートは ${outputDir} 内の各サブディレクトリにあります`);
+      
+      console.log('\n使用方法:');
+      console.log('  設定ファイルから複数URLを処理: node website-summarizer.js --config');
+      console.log('  単一URLを処理: node website-summarizer.js --url=<URL> --output=<出力ディレクトリ> [--length=<short|medium|long>]');
+      console.log('例: node website-summarizer.js --url=https://example.com --output=./output --length=medium');
+      
+    } else {
+      // 単一URLの処理
+      await processUrl(targetUrl, outputDir, summaryLength);
+      
+      console.log('\n使用方法:');
+      console.log('  設定ファイルから複数URLを処理: node website-summarizer.js --config');
+      console.log('  単一URLを処理: node website-summarizer.js --url=<URL> --output=<出力ディレクトリ> [--length=<short|medium|long>]');
+      console.log('例: node website-summarizer.js --url=https://example.com --output=./output --length=medium');
+    }
     
   } catch (error) {
     console.error(`❌ エラーが発生しました: ${error.message}`);

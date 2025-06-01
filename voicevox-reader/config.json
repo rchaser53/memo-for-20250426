@@ -1,10 +1,18 @@
 {
   "api": {
     "url": "http://localhost:50021",
-    "timeout": 10000
+    "timeout": 100000
+  },
+  "websites": {
+    "urls": [
+      "https://dev.to/sakethkowtha/10-hidden-github-gems-thatll-make-you-go-holy-forking-repositories-17ep",
+      "https://dev.to/copilotkit/turn-your-react-app-into-an-mcp-client-in-minutes-269n"
+    ],
+    "output_dir": "website_summaries",
+    "summary_length": "medium"
   },
   "speaker": {
-    "default_id": 0,
+    "default_id": 1,
     "name": "四国めたん（ノーマル）"
   },
   "output": {
