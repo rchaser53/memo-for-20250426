@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const { minimatch } = require('minimatch');
+const readlineSync = require('readline-sync');
 const ConfigManager = require('./lib/config-manager');
 const VoicevoxAPI = require('./lib/voicevox-api');
 const AudioPlayer = require('./lib/audio-player');
@@ -197,8 +198,8 @@ async function handleInteractiveMode(voicevoxAPI, audioPlayer, configManager) {
   console.log('終了するには "exit" と入力してください。');
   
   while (true) {
-    const text = UIHelper.getTextInput();
-    
+    const text = readlineSync.question(`\n読み上げるテキストを入力してください: `);
+  
     if (text.toLowerCase() === 'exit') {
       console.log('プログラムを終了します。');
       break;

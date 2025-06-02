@@ -12,8 +12,7 @@
     "summary_length": "medium"
   },
   "speaker": {
-    "default_id": 1,
-    "name": "四国めたん（ノーマル）"
+    "default_id": 1
   },
   "output": {
     "dir": "output",
