@@ -1,0 +1,50 @@
+/**
+ * テキスト処理ユーティリティ
+ * ウェブサイト要約に関連するテキスト処理機能を提供します
+ */
+
+/**
+ * テキストから特殊トークンやHTMLタグを除去する関数
+ * @param {string} text - クリーニングするテキスト
+ * @returns {string} クリーニングされたテキスト
+ */
+function cleanText(text) {
+  return text
+    .replace(/<[^>]*>/g, '') // HTMLタグを除去
+    .replace(/<\|endoftext\|>/g, '') // <|endoftext|>トークンを除去
+    .replace(/<\|startoftext\|>/g, '') // <|startoftext|>トークンを除去
+    .replace(/<\|[^|]*\|>/g, '') // その他の特殊トークンを除去
+    .replace(/\x00/g, '') // NULL文字を除去
+    .replace(/\s+/g, ' ') // 複数の空白を1つに
+    .trim();
+}
+
+/**
+ * 要約の長さに応じた指示を設定
+ * @param {string} length - 要約の長さ指定
+ * @returns {string} 要約の指示文
+ */
+function getLengthInstruction(length) {
+  switch (length.toLowerCase()) {
+    case 'short':
+    case 'brief':
+      return '簡潔に2-3文で要約してください。';
+    case 'medium':
+    case 'normal':
+      return '適度な長さ（5-8文程度）で要約してください。';
+    case 'long':
+    case 'detailed':
+      return '詳細に10-15文程度で要約してください。';
+    default:
+      // 数値が指定された場合（例：--length=100）
+      if (!isNaN(Number(length))) {
+        return `約${length}文字程度で要約してください。`;
+      }
+      return '適度な長さで要約してください。';
+  }
+}
+
+module.exports = {
+  cleanText,
+  getLengthInstruction
+};
