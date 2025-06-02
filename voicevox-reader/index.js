@@ -6,7 +6,6 @@ const ConfigManager = require('./lib/config-manager');
 const VoicevoxAPI = require('./lib/voicevox-api');
 const AudioPlayer = require('./lib/audio-player');
 const FileUtils = require('./lib/file-utils');
-const UIHelper = require('./lib/ui-helper');
 
 // 設定ファイルのパス
 const CONFIG_FILE = path.join(__dirname, 'config.json');

@@ -111,6 +111,9 @@ async function processUrl(url, outputDir, summaryLength) {
       temperature: 0.1,
       model: "gpt-4o-mini",
       openAIApiKey: process.env.OPENAI_API_KEY,
+      configuration: {
+       baseURL: process.env.OPENAI_API_URL,
+      },
       maxConcurrency: 1,
       maxRetries: 0,
     });
