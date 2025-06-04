@@ -1,7 +1,6 @@
 const path = require('path');
 const fs = require('fs');
 const { minimatch } = require('minimatch');
-const readlineSync = require('readline-sync');
 const ConfigManager = require('./lib/config-manager');
 const VoicevoxAPI = require('./lib/voicevox-api');
 const AudioPlayer = require('./lib/audio-player');
@@ -51,8 +50,22 @@ function shouldIgnoreFile(filePath, patterns) {
  * メイン関数
  */
 async function main() {
+  try {
+    // コマンドライン引数を取得
+    const args = process.argv.slice(2);
+    
+    // ファイルパスが指定されている場合
+    if (args.length > 0) {
+      await callVoicevoxAPI(args[0]);
+    }
+    
+  } catch (error) {
+    console.error('予期せぬエラーが発生しました:', error);
+  }
+}
+
+async function callVoicevoxAPI(targetPath) {
   console.log('=== VOICEVOX テキスト読み上げツール ===');
-  
   try {
     // 設定を初期化
     const configManager = new ConfigManager(CONFIG_FILE);
@@ -62,18 +75,7 @@ async function main() {
     const voicevoxAPI = new VoicevoxAPI(configManager);
     const audioPlayer = new AudioPlayer(configManager);
     
-    // コマンドライン引数を取得
-    const args = process.argv.slice(2);
-    
-    // ファイルパスが指定されている場合
-    if (args.length > 0) {
-      await handleFileMode(args[0], voicevoxAPI, audioPlayer, configManager);
-      return;
-    }
-    
-    // 対話モード
-    await handleInteractiveMode(voicevoxAPI, audioPlayer, configManager);
-    
+    await handleFileMode(targetPath, voicevoxAPI, audioPlayer, configManager);
   } catch (error) {
     console.error('予期せぬエラーが発生しました:', error);
   }
@@ -83,24 +85,24 @@ async function main() {
  * ファイルモードを処理する
  */
 async function handleFileMode(targetPath, voicevoxAPI, audioPlayer, configManager) {
-  console.log(`パスを確認しています: ${targetPath}`);
+  const actualPath = path.isAbsolute(targetPath) ? targetPath : path.join(__dirname, targetPath);
+  console.log(`パスを確認しています: ${actualPath}`);
   
   // パスが存在するかチェック
-  if (!fs.existsSync(targetPath)) {
-    console.error(`指定されたパスが存在しません: ${targetPath}`);
+  if (!fs.existsSync(actualPath)) {
+    console.error(`指定されたパスが存在しません: ${actualPath}`);
     return;
   }
   
-  const stats = fs.statSync(targetPath);
-  
+  const stats = fs.statSync(actualPath);
   if (stats.isFile()) {
     // ファイルの場合
-    await handleSingleFile(targetPath, voicevoxAPI, audioPlayer, configManager);
+    await handleSingleFile(actualPath, voicevoxAPI, audioPlayer, configManager);
   } else if (stats.isDirectory()) {
     // ディレクトリの場合
-    await handleDirectory(targetPath, voicevoxAPI, audioPlayer, configManager);
+    await handleDirectory(actualPath, voicevoxAPI, audioPlayer, configManager);
   } else {
-    console.error(`指定されたパスはファイルでもディレクトリでもありません: ${targetPath}`);
+    console.error(`指定されたパスはファイルでもディレクトリでもありません: ${actualPath}`);
   }
 }
 
@@ -189,34 +191,6 @@ async function handleDirectory(dirPath, voicevoxAPI, audioPlayer, configManager)
   }
 }
 
-/**
- * 対話モードを処理する
- */
-async function handleInteractiveMode(voicevoxAPI, audioPlayer, configManager) {
-  console.log('対話モードを開始します。');
-  console.log('終了するには "exit" と入力してください。');
-  
-  while (true) {
-    const text = readlineSync.question(`\n読み上げるテキストを入力してください: `);
-  
-    if (text.toLowerCase() === 'exit') {
-      console.log('プログラムを終了します。');
-      break;
-    }
-    
-    if (text.trim() === '') {
-      console.log('テキストが入力されていません。');
-      continue;
-    }
-    
-    const speakerId = configManager.get('speaker.default_id');
-    const outputFile = configManager.get('output.filename');
-    
-    const audioFilePath = await voicevoxAPI.textToSpeech(text, speakerId, outputFile);
-    await audioPlayer.playIfEnabled(audioFilePath);
-  }
-}
-
 // プログラムを実行
 if (require.main === module) {
   main().catch(error => {
@@ -224,4 +198,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { main };
+module.exports = { main, callVoicevoxAPI };
