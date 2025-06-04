@@ -58,36 +58,22 @@ async function main() {
     console.log('\n=== 要約が完了しました ===');
     console.log(`${results.length}個のウェブサイトが処理されました。`);
     
-    // ユーザーに読み上げを開始するか確認
-    console.log('\nこれらの要約を読み上げますか？ (y/n)');
-    process.stdin.once('data', async (data) => {
-      const input = data.toString().trim().toLowerCase();
+    // 各ディレクトリを順番に読み上げ
+    for (let i = 0; i < readingDirs.length; i++) {
+      const dir = readingDirs[i];
+      console.log(`\n[${i + 1}/${readingDirs.length}] ${dir} の読み上げを開始します...`);
       
-      if (input === 'y' || input === 'yes') {
-        console.log('\n=== 読み上げを開始します ===');
-        
-        // 各ディレクトリを順番に読み上げ
-        for (let i = 0; i < readingDirs.length; i++) {
-          const dir = readingDirs[i];
-          console.log(`\n[${i + 1}/${readingDirs.length}] ${dir} の読み上げを開始します...`);
-          
-          // index.jsのディレクトリ処理機能を使用して読み上げ
-          await callVoicevoxAPI(dir);
-          
-          // 最後のディレクトリ以外の場合は少し待機
-          if (i < readingDirs.length - 1) {
-            console.log('次のウェブサイトに進みます...\n');
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
-        
-        console.log('\nすべてのウェブサイト要約の読み上げが完了しました。');
-      } else {
-        console.log('読み上げをスキップします。');
-        process.exit(0);
+      // index.jsのディレクトリ処理機能を使用して読み上げ
+      await callVoicevoxAPI(dir);
+      
+      // 最後のディレクトリ以外の場合は少し待機
+      if (i < readingDirs.length - 1) {
+        console.log('次のウェブサイトに進みます...\n');
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
-    });
+    }
     
+    console.log('\nすべてのウェブサイト要約の読み上げが完了しました。');
   } catch (error) {
     console.error('予期せぬエラーが発生しました:', error);
   }
