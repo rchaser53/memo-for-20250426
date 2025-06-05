@@ -25,23 +25,30 @@ function cleanText(text) {
  * @returns {string} 要約の指示文
  */
 function getLengthInstruction(length) {
+  let content = '';
   switch (length.toLowerCase()) {
     case 'short':
     case 'brief':
-      return '簡潔に2-3文で要約してください。';
+      content += '簡潔に2-3文で要約してください。';
+      break
     case 'medium':
     case 'normal':
-      return '適度な長さ（5-8文程度）で要約してください。';
+      content += '適度な長さ（5-8文程度）で要約してください。';
+      break
     case 'long':
     case 'detailed':
-      return '詳細に10-15文程度で要約してください。';
+      content +=  '詳細に10-15文程度で要約してください。';
+      break
     default:
       // 数値が指定された場合（例：--length=100）
       if (!isNaN(Number(length))) {
-        return `約${length}文字程度で要約してください。`;
+        content +=  `約${length}文字程度で要約してください。`;
       }
-      return '適度な長さで要約してください。';
+      content +=  '適度な長さで要約してください。';
+      break
   }
+
+  return `${content}。要約は日本語で行ってください。記事のタイトルとして抽出できそうな部分があれば、1行目にタイトルを記載してください。`;
 }
 
 module.exports = {
