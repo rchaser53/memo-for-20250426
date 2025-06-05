@@ -71,9 +71,6 @@ class TextSplitter {
       // 各記事を個別のファイルに分割
       summarizedArticles.forEach((article, index) => {
         let content = '';
-        if (includeMetadata) {
-          content += `記事${index + 1}。`;
-        }
         content += `${article.summary}`;
         
         // 文字数制限に応じてさらに分割
